@@ -88,6 +88,7 @@ class BounceMailHandler
    *   string  $rule_no       bounce mail detect rule no.
    *   string  $rule_cat      bounce mail detect rule category
    *   int     $totalFetched  total number of messages in the mailbox
+   *   array   $customXHeaders custom header values with $this->customHeaders values as the keys
    *
    * @var mixed
    */
@@ -227,6 +228,11 @@ class BounceMailHandler
    * @var string
    */
   public $deleteMsgDate = '';
+
+  /*
+   * Identifies custom header tags from  original message
+   */
+  public $customHeaders = array();
 
     /**
      * Get version
@@ -561,6 +567,18 @@ class BounceMailHandler
 
             // process bounces by rules
             $result = bmhDSNRules($dsnMsg, $dsnReport, $this->debugDsnRule);
+
+            // Get custom headers
+            if ($this->customHeaders) {
+                $customXHeaders = array();
+                $cHeader = imap_fetchbody($this->mailboxLink, $pos, "3");
+                foreach ($this->customHeaders as $name) {
+                    if (preg_match("/{$name}: ((?:[^\n]|\n[\t ])+)(?:\n[^\t ]|$)/is", $cHeader, $match)) {
+                        $customXHeaders[$name] = $match[1];
+                    }
+                }
+            }
+
         } elseif ($type == 'BODY') {
             $structure = imap_fetchstructure($this->mailboxLink, $pos);
 
@@ -635,7 +653,7 @@ class BounceMailHandler
                 $this->output('Match: ' . $ruleNumber . ':' . $ruleCategory . '; ' . $bounceType . '; ' . $email);
             } else {
                 // code below will use the Callback function, but return no value
-                $params = array($pos, $bounceType, $email, $subject, $header, $remove, $ruleNumber, $ruleCategory, $totalFetched, $body);
+                $params = array($pos, $bounceType, $email, $subject, $header, $remove, $ruleNumber, $ruleCategory, $totalFetched, $body, $customXHeaders);
                 call_user_func_array($this->actionFunction, $params);
             }
         } else {
@@ -645,7 +663,7 @@ class BounceMailHandler
 
                 return true;
             } else {
-                $params = array($pos, $bounceType, $email, $subject, $xheader, $remove, $ruleNumber, $ruleCategory, $totalFetched, $body);
+                $params = array($pos, $bounceType, $email, $subject, $xheader, $remove, $ruleNumber, $ruleCategory, $totalFetched, $body, $customXHeaders);
 
                 return call_user_func_array($this->actionFunction, $params);
             }
