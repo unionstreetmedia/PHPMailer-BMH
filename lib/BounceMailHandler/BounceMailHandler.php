@@ -234,6 +234,11 @@ class BounceMailHandler
    */
   public $customHeaders = array();
 
+  /*
+   * Always return the callback function
+   */
+  public $returnCallback = false;
+
     /**
      * Get version
      *
@@ -643,7 +648,7 @@ class BounceMailHandler
         $ruleCategory = $result['rule_cat'];
         $xheader      = false;
 
-        if ($ruleNumber === '0000') {
+        if ($ruleNumber === '0000' and !$this->returnCallback) {
             // unrecognized
             if (trim($email) == '') {
                 $email = $header->fromaddress;
